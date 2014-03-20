@@ -339,9 +339,28 @@ function MakiboxParser() {
   };
   
   self.parseDateForum = function(source) {
-    var dateText = source.split(" ")[0];
-    var dateParts = dateText.split("-");
-    return new Date(Date.UTC(dateParts[0], parseInt(dateParts[1], 10) - 1, dateParts[2]));
+    var dateText = source.split(" ");
+    var dateParts = dateText[0].split("-");
+    var timeParts = dateText[1].split(":");
+    var date;
+    switch(dateText[0]) {
+      case "Today":
+        date = new Date();
+        date.setUTCHours(parseInt(timeParts[0], 10) - 8);
+        date.setUTCMinutes(timeParts[1]);
+        date.setUTCSeconds(0);
+        break;
+      case "Yesterday":
+        date = new Date();
+        date.setUTCHours(parseInt(timeParts[0], 10) - 8 - 24);
+        date.setUTCMinutes(timeParts[1]);
+        date.setUTCSeconds(0);
+        break;
+      default:
+        date = new Date(Date.UTC(dateParts[0], parseInt(dateParts[1], 10) - 1, dateParts[2], timeParts[0] - 8, timeParts[1]));
+        break;
+    }
+    return date;
   };
   
   self.getMonthFromText = function(source) {
