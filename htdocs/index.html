@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en" ng-app="makiStatsApp">
+  <head>
+    <meta charset="utf-8">
+    <title>MakiStats</title>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/2.0.4/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+    
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.3.0-beta.2/angular.min.js"></script>
+    <script src="js/controllers.js"></script>
+  </head>
+  <body ng-controller="MainCtrl">
+    <div class="alert-container">
+      <div class="alert alert-error" ng-hide="hide" ng-repeat="error in errorList">
+        <button type="button" class="close" data-dismiss="alert" ng-click="hide = true">&times;</button>
+        {{error.message}} (HTTP status code: {{error.status}})
+      </div>
+      <div class="alert alert-success" ng-hide="hide" ng-repeat="success in successList">
+        <button type="button" class="close" data-dismiss="alert" ng-click="hide = true">&times;</button>
+        {{success.message}}
+      </div>
+    </div>
+    <div class="container-fluid">
+      <h1>Makistats <small>last scraped: {{data.scrapeDate | date: "yyyy-MM-dd  HH:mm:ss"}}</small></h1>
+      <a class="btn btn-primary btn-mini" href="client.csv?{{timetag}}">Export CSV</a>
+      <p>
+        Number of Orders: <span class="badge badge-important" ng-bind="getCount('ordered')"></span><br>
+        Number of Cancelled Orders: <span class="badge badge-default" ng-bind="getCount('cancelled')"></span><br>
+        Number of Notices: <span class="badge badge-warning" ng-bind="getCount('notice')"></span><br>
+        Number of Trackable Packages: <span class="badge badge-info" ng-bind="getCount('tracking')"></span><br>
+        Number of Happy Makers: <span class="badge badge-success" ng-bind="getCount('received')"></span>
+      </p>
+      <form class="form-search">
+        <div class="input-prepend">
+        <span class="add-on">Search</span><input type="text" class="span2 search-query" ng-model="query">
+      </div>
+      <div class="input-prepend" ng-init="orderMode = 'orderDate'">
+        <span class="add-on"> Sort by</span>
+        <select class='search-query span2' ng-model="orderMode">
+          <option value="time">Post Date</option>
+          <option value="poster">Alphabetical</option>
+          <option value="orderDate">Order Date</option>
+          <option value="noticeDate">Notice Date</option>
+          <option value="trackingDate">Tracking Date</option>
+          <option value="receivedDate">Received Date</option>
+          <option value="lastModified">Last Edited</option>
+        </select>
+        <a class="btn" ng-init="orderReverse = false" ng-click="orderReverse = !orderReverse">
+          Sort Order
+          <i ng-if="orderReverse == false" class="orderButton icon-chevron-up"></i>
+          <i ng-if="orderReverse == true" class="orderButton icon-chevron-down"></i>
+        </a>
+      </div>
+      <p class="muted" ng-if="query"><small>Results: {{(data.messages | filter:query).length}}</small></p>
+      </form>
+      <ul class="thumbnails">
+        <li class="span4" ng-repeat="message in data.messages | filter: query | orderBy: 'orderDate' | orderBy: orderMode:orderReverse">
+          <a class="thumbnail" href="http://www.makibox.com/forum/message/{{message.id}}" alt="Link to original post.">
+            <i class="icon-share"></i>
+            <span class="original_poster">{{message.poster}}</span>
+            <span class="label label-warning pull-right" style="position:relative;" ng-if="message.noticeDate !== false && message.trackingDate === false && message.receivedDate === false && message.cancelDate === false">has notice</span>
+            <span class="label label-info pull-right" style="position:relative;" ng-if="message.trackingDate !== false && message.receivedDate === false && message.cancelDate === false">has tracking id</span>
+            <span class="label label-success pull-right" style="position:relative;" ng-if="message.receivedDate !== false && message.cancelDate === false">has Makibox</span>
+            <span class="label label-default pull-right" style="position:relative;" ng-if="message.cancelDate !== false">Cancelled</span>
+          </a>
+          <div class="well well-small data_well">
+            <table class="dataTable" ng-class="{cancelled: message.cancelDate !== false}">
+              <tr>
+                <td class="muted">Makibox Type</td>
+                <td>A6 {{message.product}} <span ng-if="message.ramen == true">Ramen Bundle</span> {{message.color}}</td>
+              </tr>
+              <tr>
+                <td class="muted">Country</td>
+                <td>{{message.shippingDestination}}</td>
+              </tr>
+              <tr>
+                <td class="muted">Shipping</td>
+                <td>{{message.shippingMethod}}</td>
+              </tr>
+              <tr>
+                <td class="muted">Order</td>
+                <td>
+                  <span ng-if="message.orderDate !== false">{{message.orderDate | date: "yyyy-MM-dd"}}</span>
+                  <span ng-if="message.orderDate === false">-</span>
+                </td>
+              </tr>
+              <tr>
+                <td class="muted">Notice</td>
+                <td>
+                  <span ng-if="message.noticeDate !== false">{{message.noticeDate | date: "yyyy-MM-dd"}}</span>
+                  <span ng-if="message.noticeDate === false">-</span>
+                </td>
+              </tr>
+              <tr>
+                <td class="muted">Tracking</td>
+                <td>
+                  <span ng-if="message.trackingDate !== false">{{message.trackingDate | date: "yyyy-MM-dd"}}</span>
+                  <span ng-if="message.trackingDate === false">-</span>
+                </td>
+              </tr>
+              <tr ng-hide="message.cancelDate !== false">
+                <td class="muted">Received</td>
+                <td>
+                  <span ng-if="message.receivedDate !== false">{{message.receivedDate | date: "yyyy-MM-dd"}}</span>
+                  <span ng-if="message.receivedDate === false">-</span>
+                </td>
+              </tr>
+              <tr ng-show="message.cancelDate !== false">
+                <td class="muted">Cancelled</td>
+                <td>
+                  <span ng-if="message.cancelDate !== false">{{message.cancelDate | date: "yyyy-MM-dd"}}</span>
+                  <span ng-if="message.cancelDate === false">-</span>
+                </td>
+              </tr>
+              <tr>
+                <td class="muted">Last Edited</td>
+                <td class="muted">{{message.lastModified | date: "yyyy-MM-dd"}}</td>
+              </tr>
+            </table>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-49157536-1', 'mikk36.eu');
+  ga('send', 'pageview');
+    </script>
+  </body>
+</html>
